@@ -624,20 +624,49 @@ func TestGenerateEnvironmentFile(t *testing.T) {
 	}
 	content := string(data)
 
-	if !containsStr(content, "MC_JAVA=/usr/bin/java") {
-		t.Error("env file missing MC_JAVA")
+	// MC_JAVA is intentionally absent: systemd does not expand ${VAR} for the
+	// executable path, so /usr/bin/java is hardcoded in the service unit.
+	if containsStr(content, "MC_JAVA") {
+		t.Error("env file must not contain MC_JAVA (unused in ExecStart)")
 	}
 	if !containsStr(content, "MC_JAR=server.jar") {
-		t.Error("env file missing MC_JAR")
+		t.Error("env file missing MC_JAR=server.jar")
 	}
-	if !containsStr(content, "-Xms2G") {
-		t.Error("env file missing -Xms2G")
+	if !containsStr(content, "MC_MIN_MEMORY=-Xms2G") {
+		t.Error("env file missing MC_MIN_MEMORY=-Xms2G")
 	}
-	if !containsStr(content, "-Xmx8G") {
-		t.Error("env file missing -Xmx8G")
+	if !containsStr(content, "MC_MAX_MEMORY=-Xmx8G") {
+		t.Error("env file missing MC_MAX_MEMORY=-Xmx8G")
 	}
-	if !containsStr(content, "-XX:+UseG1GC") {
-		t.Error("env file missing Aikar's G1GC flag")
+}
+
+func TestGenerateEnvironmentFile_CustomMemory(t *testing.T) {
+	cfg := Default()
+	cfg.Server.MinMemory = "6G"
+	cfg.Server.MaxMemory = "10G"
+	cfg.Server.Jar = "fabric-server.jar"
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "minecraft.env")
+
+	if err := cfg.GenerateEnvironmentFile(path); err != nil {
+		t.Fatalf("GenerateEnvironmentFile: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading env file: %v", err)
+	}
+	content := string(data)
+
+	if !containsStr(content, "MC_JAR=fabric-server.jar") {
+		t.Error("env file missing custom jar")
+	}
+	if !containsStr(content, "MC_MIN_MEMORY=-Xms6G") {
+		t.Error("env file missing MC_MIN_MEMORY=-Xms6G")
+	}
+	if !containsStr(content, "MC_MAX_MEMORY=-Xmx10G") {
+		t.Error("env file missing MC_MAX_MEMORY=-Xmx10G")
 	}
 }
 

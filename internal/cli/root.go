@@ -24,7 +24,7 @@ func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "mc",
 		Short: "Minecraft Server Manager",
-		Long: `Minecraft Server Manager — a modern CLI tool to manage
+		Long: `Minecraft Server Manager - a modern CLI tool to manage
 a single Minecraft server with systemd on Linux.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,

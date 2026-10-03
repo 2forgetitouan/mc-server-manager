@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# mc-server-manager — uninstall script
+# mc-server-manager - uninstall script
 # =============================================================================
 # Removes the mc binary and systemd service. Config and world data are
 # preserved unless --purge is passed.
@@ -71,7 +71,7 @@ if [[ -f "${INSTALL_DIR}/${BINARY_NAME}" ]]; then
     rm -f "${INSTALL_DIR}/${BINARY_NAME}"
     info "Binary removed."
 else
-    info "Binary not found at ${INSTALL_DIR}/${BINARY_NAME} — skipping."
+    info "Binary not found at ${INSTALL_DIR}/${BINARY_NAME} - skipping."
 fi
 
 # --- Remove systemd service --------------------------------------------------
@@ -81,7 +81,7 @@ if [[ -f "${SYSTEMD_DIR}/${SERVICE_FILE}" ]]; then
     rm -f "${SYSTEMD_DIR}/${SERVICE_FILE}"
     info "Service file removed."
 else
-    info "Service file not found at ${SYSTEMD_DIR}/${SERVICE_FILE} — skipping."
+    info "Service file not found at ${SYSTEMD_DIR}/${SERVICE_FILE} - skipping."
 fi
 
 # --- Remove environment file -------------------------------------------------
@@ -117,7 +117,7 @@ if [[ "$PURGE" == true ]]; then
         rm -rf "${CONFIG_DIR}"
         info "Config directory removed."
     else
-        info "Config directory not found at ${CONFIG_DIR} — skipping."
+        info "Config directory not found at ${CONFIG_DIR} - skipping."
     fi
 else
     info "Config directory ${CONFIG_DIR} was NOT removed (use --purge to remove)."

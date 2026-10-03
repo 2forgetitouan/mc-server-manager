@@ -34,8 +34,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.Modrinth.Enabled {
-		return fmt.Errorf("Modrinth integration is disabled in configuration.\n" +
-			"This is expected for a Vanilla server. Enable it in the config file to use mod updates.")
+		return fmt.Errorf("modrinth integration is disabled in configuration\n" +
+			"enable it under [modrinth] in config.toml (not needed for vanilla servers)")
 	}
 
 	mgr := mods.NewManager(cfg)

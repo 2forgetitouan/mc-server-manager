@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -269,7 +270,7 @@ rcon.password=test123
 	cfg.Console.Method = "rcon"
 	d := New(cfg)
 
-	result := d.CheckRCON(nil)
+	result := d.CheckRCON(context.TODO())
 	if result.Status != Pass {
 		t.Errorf("Status = %q, want PASS: %s", result.Status, result.Message)
 	}
@@ -284,7 +285,7 @@ func TestCheckRCON_MissingProperties(t *testing.T) {
 	cfg.Console.Method = "rcon"
 	d := New(cfg)
 
-	result := d.CheckRCON(nil)
+	result := d.CheckRCON(context.TODO())
 	if result.Status != Fail {
 		t.Errorf("Status = %q, want FAIL", result.Status)
 	}
@@ -303,7 +304,7 @@ rcon.password=test123
 	cfg.Console.Method = "rcon"
 	d := New(cfg)
 
-	result := d.CheckRCON(nil)
+	result := d.CheckRCON(context.TODO())
 	if result.Status != Fail {
 		t.Errorf("Status = %q, want FAIL: enable-rcon not true", result.Status)
 	}
@@ -314,7 +315,7 @@ func TestCheckRCON_NotRCONMethod(t *testing.T) {
 	cfg.Console.Method = ""
 	d := New(cfg)
 
-	result := d.CheckRCON(nil)
+	result := d.CheckRCON(context.TODO())
 	if result.Status != Pass {
 		t.Errorf("Status = %q, want PASS when method is not rcon", result.Status)
 	}

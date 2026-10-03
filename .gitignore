@@ -1,1 +1,23 @@
+# Build output
+bin/
+mc-linux-amd64
+mc-linux-arm64
+
+# Go
+*.test
+*.out
+/vendor/
+
+# Editor
+.vscode/
 .claude
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.env

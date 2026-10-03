@@ -1,7 +1,7 @@
 # mc -- Minecraft Server Manager
 
 A modern CLI tool to manage a single Minecraft Fabric server on Linux with
-systemd. No Docker, no tmux, no screen, no web panel -- just a clean binary.
+systemd. No Docker, no tmux, no screen, no web panel ; just a clean binary.
 
 ## Features
 
@@ -34,8 +34,9 @@ make build
 sudo make install       # installs binary, service, polkit, env file
 
 mc config init          # creates ~/.config/mc/config.toml
-# Edit ~/.config/mc/config.toml to match your server
-# If you changed memory/java, run: sudo mc service generate-env
+# Edit ~/.config/mc/config.toml to match your server (memory, jar, etc.)
+# After editing memory or jar, regenerate the env file:
+#   sudo mc service generate-env
 mc doctor               # verify everything is wired up
 mc start                # no sudo needed!
 ```
@@ -156,11 +157,16 @@ Make sure `enable-rcon=true` and `rcon.port` matches the value in `[console]`.
 
 ### mc start
 
-Start the Minecraft server via systemd.
+Start the Minecraft server via systemd and stream the startup logs.
+Press **Ctrl+C** to detach from logs without stopping the server.
 
 ```bash
 mc start
 ```
+
+The command exits automatically when the server finishes loading.
+If the service fails immediately, the recent logs are shown inline 
+to help diagnose the problem.
 
 ### mc stop
 
@@ -285,16 +291,17 @@ mc version
 
 ## systemd Service
 
-`mc` manages the server through a systemd unit that reads JVM arguments from
-an environment file. This means memory, java path, and JVM flags are configured
-in `config.toml` and applied to the service via `mc service generate-env`.
+`mc` manages the server through a systemd unit. The service template is embedded
+in the binary, so `sudo mc service install` always writes the correct unit file
+regardless of where the binary is run from.
 
 ### How it works
 
-1. You configure memory/java/jar in `config.toml`
-2. `mc service generate-env` writes `/etc/mc/minecraft.env` with the JVM flags
-3. The systemd unit uses `EnvironmentFile=/etc/mc/minecraft.env` to read them
-4. A polkit rule lets user `ubuntu` run `mc start/stop/restart` without sudo
+1. `sudo mc service install` writes the service unit and a polkit rule
+2. Memory and jar settings from `config.toml` are written to `/etc/mc/minecraft.env`
+3. The service reads that file at startup via `EnvironmentFile=`
+4. The polkit rule lets user `ubuntu` run `mc start/stop/restart` without sudo
+5. Java is resolved via `/usr/bin/java` (managed by `update-alternatives`)
 
 ### Install the service
 
@@ -310,12 +317,17 @@ sudo ./scripts/install.sh
 
 ### Update after config changes
 
-After changing `min_memory`, `max_memory`, `java`, `jar`, or `jvm_args` in
-`config.toml`:
+After changing `min_memory`, `max_memory`, or `jar` in `config.toml`:
 
 ```bash
 sudo mc service generate-env
 mc restart
+```
+
+To switch Java versions, use `update-alternatives`:
+
+```bash
+sudo update-alternatives --config java
 ```
 
 ### No-password management

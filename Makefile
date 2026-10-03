@@ -1,5 +1,5 @@
 # =============================================================================
-# mc-server-manager — Makefile
+# mc-server-manager - Makefile
 # =============================================================================
 
 # --- Variables ---------------------------------------------------------------
@@ -10,8 +10,12 @@ INSTALL_DIR  := /usr/local/bin
 SYSTEMD_DIR  := /etc/systemd/system
 CONFIG_DIR   := /etc/mc
 
-# Git-derived version, falls back to "dev" if no tags exist.
-VERSION      := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+# Version: use exact tag on tagged commits, otherwise v0.0.0-dev.<short SHA>.
+# Appends -dirty if the working tree has uncommitted changes.
+GIT_SHA     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_TAG     := $(shell git describe --tags --exact-match 2>/dev/null)
+GIT_DIRTY   := $(shell git diff --quiet 2>/dev/null || echo "-dirty")
+VERSION     := $(if $(GIT_TAG),$(GIT_TAG)$(GIT_DIRTY),v0.0.0-dev.$(GIT_SHA)$(GIT_DIRTY))
 
 # Go build flags.
 LDFLAGS      := -ldflags "-X main.version=$(VERSION)"
@@ -56,7 +60,7 @@ install: build
 	install -d -m 755 $(CONFIG_DIR)
 	@test -f $(CONFIG_DIR)/config.toml || install -m 640 configs/mc.toml.example $(CONFIG_DIR)/config.toml
 	@echo "==> Installing systemd service + polkit + env file ..."
-	$(INSTALL_DIR)/$(BINARY_NAME) service install --service-src systemd/minecraft.service
+	$(INSTALL_DIR)/$(BINARY_NAME) service install
 	@echo ""
 	@echo "Install complete. No sudo needed for mc start/stop/restart."
 
@@ -89,7 +93,7 @@ test:
 test-verbose:
 	go test -v ./...
 
-## lint: Run go vet (and staticcheck if available)
+## lint: Run go vet and staticcheck
 lint:
 	@echo "==> go vet ..."
 	go vet ./...
