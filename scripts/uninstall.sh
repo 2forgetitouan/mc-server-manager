@@ -84,6 +84,28 @@ else
     info "Service file not found at ${SYSTEMD_DIR}/${SERVICE_FILE} — skipping."
 fi
 
+# --- Remove environment file -------------------------------------------------
+
+if [[ -f "${CONFIG_DIR}/minecraft.env" ]]; then
+    info "Removing ${CONFIG_DIR}/minecraft.env ..."
+    rm -f "${CONFIG_DIR}/minecraft.env"
+    info "Environment file removed."
+fi
+
+# --- Remove polkit rules -----------------------------------------------------
+
+POLKIT_RULES="/etc/polkit-1/rules.d/10-mc-minecraft.rules"
+POLKIT_PKLA="/etc/polkit-1/localauthority/50-local.d/10-mc-minecraft.pkla"
+
+if [[ -f "${POLKIT_RULES}" ]]; then
+    info "Removing polkit rule ${POLKIT_RULES} ..."
+    rm -f "${POLKIT_RULES}"
+fi
+if [[ -f "${POLKIT_PKLA}" ]]; then
+    info "Removing polkit rule ${POLKIT_PKLA} ..."
+    rm -f "${POLKIT_PKLA}"
+fi
+
 info "Reloading systemd daemon ..."
 systemctl daemon-reload
 
@@ -111,6 +133,8 @@ echo ""
 echo "Removed:"
 echo "  - ${INSTALL_DIR}/${BINARY_NAME}"
 echo "  - ${SYSTEMD_DIR}/${SERVICE_FILE}"
+echo "  - ${CONFIG_DIR}/minecraft.env"
+echo "  - polkit rules (if present)"
 if [[ "$PURGE" == true ]]; then
     echo "  - ${CONFIG_DIR}/ (purged)"
 fi

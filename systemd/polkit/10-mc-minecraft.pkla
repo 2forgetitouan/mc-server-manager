@@ -1,0 +1,12 @@
+# Allow the minecraft user to manage minecraft.service without a password.
+# Install to: /etc/polkit-1/localauthority/50-local.d/10-mc-minecraft.pkla
+#
+# This is the legacy pkla format supported by Ubuntu/Debian.
+# For polkit 0.106+ (rules.d format), use the .rules file instead.
+
+[Allow minecraft user to manage minecraft.service]
+Identity=unix-user:ubuntu
+Action=org.freedesktop.systemd1.manage-units
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes

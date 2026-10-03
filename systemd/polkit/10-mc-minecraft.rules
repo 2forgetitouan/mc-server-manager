@@ -1,0 +1,13 @@
+// Allow the minecraft user to manage minecraft.service without a password.
+// Install to: /etc/polkit-1/rules.d/10-mc-minecraft.rules
+//
+// This is the modern JavaScript rules format for polkit 0.106+.
+// Supported by Ubuntu 22.04+, Fedora, Arch, etc.
+
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") === "minecraft.service" &&
+        subject.user === "ubuntu") {
+        return polkit.Result.YES;
+    }
+});

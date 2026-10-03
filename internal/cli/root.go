@@ -66,6 +66,7 @@ a single Minecraft server with systemd on Linux.`,
 		newUpdateCmd(),
 		newDoctorCmd(),
 		newConfigCmd(),
+		newServiceCmd(),
 		newVersionCmd(),
 	)
 

@@ -47,30 +47,20 @@ build-linux-amd64:
 ## build-all: Build for both linux/arm64 and linux/amd64
 build-all: build-linux-arm64 build-linux-amd64
 
-## install: Build, install binary + systemd service + config, daemon-reload
+## install: Build, install binary + service + polkit + env file + config
 install: build
 	@echo "==> Installing $(BINARY_NAME) to $(INSTALL_DIR) ..."
 	install -d $(INSTALL_DIR)
 	install -m 755 $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
-	@echo "==> Installing systemd service ..."
-	install -d $(SYSTEMD_DIR)
-	install -m 644 systemd/minecraft.service $(SYSTEMD_DIR)/minecraft.service
 	@echo "==> Installing default config (if not present) ..."
 	install -d -m 755 $(CONFIG_DIR)
 	@test -f $(CONFIG_DIR)/config.toml || install -m 640 configs/mc.toml.example $(CONFIG_DIR)/config.toml
-	@echo "==> Reloading systemd daemon ..."
-	systemctl daemon-reload
+	@echo "==> Installing systemd service + polkit + env file ..."
+	$(INSTALL_DIR)/$(BINARY_NAME) service install --service-src systemd/minecraft.service
 	@echo ""
-	@echo "Install complete."
-	@echo "  Binary:  $(INSTALL_DIR)/$(BINARY_NAME)"
-	@echo "  Service: $(SYSTEMD_DIR)/minecraft.service"
-	@echo "  Config:  $(CONFIG_DIR)/config.toml"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  sudo systemctl enable minecraft"
-	@echo "  sudo systemctl start minecraft"
+	@echo "Install complete. No sudo needed for mc start/stop/restart."
 
-## uninstall: Remove binary + systemd service (keeps config and world data)
+## uninstall: Remove binary + systemd service + polkit (keeps config and world)
 uninstall:
 	@echo "==> Stopping service (if running) ..."
 	-systemctl stop minecraft 2>/dev/null || true
@@ -79,6 +69,11 @@ uninstall:
 	rm -f $(INSTALL_DIR)/$(BINARY_NAME)
 	@echo "==> Removing systemd service ..."
 	rm -f $(SYSTEMD_DIR)/minecraft.service
+	@echo "==> Removing environment file ..."
+	rm -f $(CONFIG_DIR)/minecraft.env
+	@echo "==> Removing polkit rules ..."
+	rm -f /etc/polkit-1/rules.d/10-mc-minecraft.rules
+	rm -f /etc/polkit-1/localauthority/50-local.d/10-mc-minecraft.pkla
 	@echo "==> Reloading systemd daemon ..."
 	systemctl daemon-reload
 	@echo ""

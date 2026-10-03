@@ -581,6 +581,66 @@ func TestLoadFromValidationFailure(t *testing.T) {
 	}
 }
 
+func TestJVMArgsList_Defaults(t *testing.T) {
+	cfg := Default()
+	args := cfg.JVMArgsList()
+	if len(args) < 3 {
+		t.Fatalf("JVMArgsList returned %d args, expected many more", len(args))
+	}
+	if args[0] != "-Xms2G" {
+		t.Errorf("first arg = %q, want -Xms2G", args[0])
+	}
+	if args[1] != "-Xmx8G" {
+		t.Errorf("second arg = %q, want -Xmx8G", args[1])
+	}
+}
+
+func TestJVMArgsList_Custom(t *testing.T) {
+	cfg := Default()
+	cfg.Server.JVMArgs = []string{"-XX:+UseZGC"}
+	cfg.Server.MinMemory = "4G"
+	cfg.Server.MaxMemory = "10G"
+	args := cfg.JVMArgsList()
+	if len(args) != 3 {
+		t.Fatalf("JVMArgsList returned %d args, want 3", len(args))
+	}
+	if args[0] != "-Xms4G" || args[1] != "-Xmx10G" || args[2] != "-XX:+UseZGC" {
+		t.Errorf("unexpected args: %v", args)
+	}
+}
+
+func TestGenerateEnvironmentFile(t *testing.T) {
+	cfg := Default()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "minecraft.env")
+
+	if err := cfg.GenerateEnvironmentFile(path); err != nil {
+		t.Fatalf("GenerateEnvironmentFile: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading env file: %v", err)
+	}
+	content := string(data)
+
+	if !containsStr(content, "MC_JAVA=/usr/bin/java") {
+		t.Error("env file missing MC_JAVA")
+	}
+	if !containsStr(content, "MC_JAR=server.jar") {
+		t.Error("env file missing MC_JAR")
+	}
+	if !containsStr(content, "-Xms2G") {
+		t.Error("env file missing -Xms2G")
+	}
+	if !containsStr(content, "-Xmx8G") {
+		t.Error("env file missing -Xmx8G")
+	}
+	if !containsStr(content, "-XX:+UseG1GC") {
+		t.Error("env file missing Aikar's G1GC flag")
+	}
+}
+
 // contains is a helper to check substring presence.
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsStr(s, substr))

@@ -28,15 +28,16 @@ systemd. No Docker, no tmux, no screen, no web panel -- just a clean binary.
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-user/mc-server-manager.git
+git clone https://github.com/2forgetitouan/mc-server-manager.git
 cd mc-server-manager
-go build -o mc ./cmd/mc
-sudo cp mc /usr/local/bin/
+make build
+sudo make install       # installs binary, service, polkit, env file
 
 mc config init          # creates ~/.config/mc/config.toml
 # Edit ~/.config/mc/config.toml to match your server
+# If you changed memory/java, run: sudo mc service generate-env
 mc doctor               # verify everything is wired up
-mc start                # start the server
+mc start                # no sudo needed!
 ```
 
 ## Installation
@@ -44,7 +45,7 @@ mc start                # start the server
 ### Build from source
 
 ```bash
-git clone https://github.com/your-user/mc-server-manager.git
+git clone https://github.com/2forgetitouan/mc-server-manager.git
 cd mc-server-manager
 go build -o mc ./cmd/mc
 ```
@@ -258,6 +259,16 @@ mc config init -p /path  # create at a custom path
 mc config path           # print the path of the active config file
 ```
 
+### mc service
+
+Manage the systemd service installation.
+
+```bash
+sudo mc service install        # install service, polkit rule, env file
+sudo mc service generate-env   # regenerate env file after config changes
+sudo mc service uninstall      # remove service and polkit rule
+```
+
 ### mc version
 
 Print the build version.
@@ -274,46 +285,48 @@ mc version
 
 ## systemd Service
 
-`mc` manages the server through a regular systemd unit. A minimal service file
-looks like this:
+`mc` manages the server through a systemd unit that reads JVM arguments from
+an environment file. This means memory, java path, and JVM flags are configured
+in `config.toml` and applied to the service via `mc service generate-env`.
 
-```ini
-[Unit]
-Description=Minecraft Server
-After=network.target
+### How it works
 
-[Service]
-Type=simple
-User=minecraft
-WorkingDirectory=/home/minecraft/server
-ExecStart=/usr/bin/java -Xms2G -Xmx8G -jar server.jar --nogui
-ExecStop=/usr/local/bin/mc stop
-Restart=on-failure
-RestartSec=10
-TimeoutStopSec=60
+1. You configure memory/java/jar in `config.toml`
+2. `mc service generate-env` writes `/etc/mc/minecraft.env` with the JVM flags
+3. The systemd unit uses `EnvironmentFile=/etc/mc/minecraft.env` to read them
+4. A polkit rule lets user `ubuntu` run `mc start/stop/restart` without sudo
 
-# Security hardening
-NoNewPrivileges=true
-ProtectSystem=full
-ProtectHome=read-only
-PrivateTmp=true
-ReadWritePaths=/home/minecraft/server
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Install and enable the unit:
+### Install the service
 
 ```bash
-sudo cp minecraft.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable minecraft.service
+sudo mc service install     # installs service + polkit + env file
 ```
+
+Or use the scripts:
+
+```bash
+sudo ./scripts/install.sh
+```
+
+### Update after config changes
+
+After changing `min_memory`, `max_memory`, `java`, `jar`, or `jvm_args` in
+`config.toml`:
+
+```bash
+sudo mc service generate-env
+mc restart
+```
+
+### No-password management
+
+A polkit rule is installed so the configured user can manage the
+`minecraft.service` unit without `sudo`. This means `mc start`, `mc stop`,
+and `mc restart` work directly from an SSH session.
 
 ### Security hardening
 
-The service file above includes several systemd directives that restrict the
+The service file includes several systemd directives that restrict the
 server process:
 
 - **NoNewPrivileges** -- the process cannot gain additional privileges.
@@ -321,6 +334,8 @@ server process:
 - **ProtectHome=read-only** -- home directories are read-only except for the
   explicit `ReadWritePaths`.
 - **PrivateTmp** -- the server gets its own `/tmp`.
+- **TimeoutStopSec=90** -- generous timeout for world saving.
+- **Restart=on-failure** with circuit breaker (max 3 restarts in 5 minutes).
 
 ## Mod Updates and Rollback
 
