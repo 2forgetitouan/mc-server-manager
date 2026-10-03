@@ -1,0 +1,64 @@
+# mc-server-manager configuration
+# ================================
+# Copy this file to one of the following locations (searched in order):
+#   1. Path in $MC_CONFIG environment variable
+#   2. ./mc.toml           (current directory)
+#   3. ~/.config/mc/config.toml
+#   4. /etc/mc/config.toml
+
+# Root directory of the Minecraft server installation.
+server_path = "/home/ubuntu/minecraft"
+
+# ---- Server settings ----
+[server]
+minecraft_version = "1.21.1"
+loader            = "fabric"
+# loader_version  = ""          # leave empty to use latest
+java              = "/usr/bin/java"
+min_memory        = "2G"
+max_memory        = "8G"
+jar               = "server.jar"
+port              = 25565
+
+# Extra JVM arguments (one per entry).
+# jvm_args = ["-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled"]
+
+# ---- Systemd service ----
+[systemd]
+unit           = "minecraft.service"
+stop_timeout   = 60        # seconds to wait for graceful stop
+restart_policy = "on-failure"
+
+# ---- Console / RCON ----
+# The RCON password is read automatically from server.properties
+# (rcon.password=...) and is NOT stored in this file.
+[console]
+method    = "rcon"
+rcon_port = 25575
+rcon_host = "127.0.0.1"
+
+# ---- Modrinth API ----
+[modrinth]
+enabled    = true
+user_agent = "mc-server-manager/1.0 (github.com/mc-server-manager)"
+timeout    = 30   # HTTP timeout in seconds
+
+# ---- Mod management ----
+[mods]
+directory   = "mods"          # relative to server_path
+backup_dir  = "mods-backup"   # relative to server_path
+max_backups = 5               # number of backup copies to keep
+
+# Pin specific mods to a version (slug = version).
+# [mods.pinned]
+# sodium  = "0.5.3"
+# lithium = "0.11.2"
+
+# ---- World backups ----
+[backup]
+# directory = "/backups/minecraft"   # absolute path for backups
+
+# ---- Display / terminal ----
+[display]
+color     = "auto"   # auto | always | never
+log_lines = 50       # default number of log lines shown by `mc logs`

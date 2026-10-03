@@ -1,0 +1,110 @@
+# =============================================================================
+# Minecraft Server (Fabric) — systemd service
+# =============================================================================
+# Managed by mc-server-manager.
+# Install with:  sudo cp minecraft.service /etc/systemd/system/
+#                sudo systemctl daemon-reload
+#                sudo systemctl enable minecraft
+#
+# The JVM flags below are based on Aikar's recommended flags, tuned for the
+# 2G-8G heap range used by default in mc-server-manager.
+# See: https://docs.papermc.io/paper/aikars-flags
+# =============================================================================
+
+[Unit]
+Description=Minecraft Server (Fabric)
+# Wait for the network to be online before starting.
+After=network.target
+
+[Service]
+# --- Identity -----------------------------------------------------------
+# Run as the dedicated minecraft user; never as root.
+User=ubuntu
+WorkingDirectory=/home/ubuntu/minecraft
+
+# --- Execution -----------------------------------------------------------
+# Fabric server launch command with Aikar's optimized JVM flags.
+#
+# Memory: -Xms2G -Xmx8G  (matches config defaults)
+#
+# G1GC tuning (Aikar's flags):
+#   -XX:+UseG1GC                          Use the G1 garbage collector
+#   -XX:+ParallelRefProcEnabled            Process references in parallel
+#   -XX:MaxGCPauseMillis=200               Target max GC pause
+#   -XX:+UnlockExperimentalVMOptions       Required for some flags below
+#   -XX:+DisableExplicitGC                 Prevent plugins calling System.gc()
+#   -XX:+AlwaysPreTouch                    Pre-touch heap pages at startup
+#   -XX:G1NewSizePercent=30                Min new-gen size (tuned for 8G max)
+#   -XX:G1MaxNewSizePercent=40             Max new-gen size
+#   -XX:G1HeapRegionSize=8M               Region size for 8G heap
+#   -XX:G1ReservePercent=20               Reserve heap to reduce to-space overflow
+#   -XX:G1MixedGCCountTarget=4            Mixed GC target count
+#   -XX:InitiatingHeapOccupancyPercent=15  Start concurrent marking earlier
+#   -XX:G1MixedGCLiveThresholdPercent=90   Include regions with up to 90% live
+#   -XX:G1RSetUpdatingPauseTimePercent=5   Limit RSet update time in pause
+#   -XX:SurvivorRatio=32                   Survivor space ratio
+#   -XX:+PerfDisableSharedMem              Reduce GC overhead from perf counters
+#   -XX:MaxTenuringThreshold=1             Promote objects faster to old gen
+#   -Dusing.aikars.flags=https://mcflags.emc.gs
+#   -Daikars.new.flags=true
+#
+ExecStart=/usr/bin/java \
+    -Xms2G -Xmx8G \
+    -XX:+UseG1GC \
+    -XX:+ParallelRefProcEnabled \
+    -XX:MaxGCPauseMillis=200 \
+    -XX:+UnlockExperimentalVMOptions \
+    -XX:+DisableExplicitGC \
+    -XX:+AlwaysPreTouch \
+    -XX:G1NewSizePercent=30 \
+    -XX:G1MaxNewSizePercent=40 \
+    -XX:G1HeapRegionSize=8M \
+    -XX:G1ReservePercent=20 \
+    -XX:G1MixedGCCountTarget=4 \
+    -XX:InitiatingHeapOccupancyPercent=15 \
+    -XX:G1MixedGCLiveThresholdPercent=90 \
+    -XX:G1RSetUpdatingPauseTimePercent=5 \
+    -XX:SurvivorRatio=32 \
+    -XX:+PerfDisableSharedMem \
+    -XX:MaxTenuringThreshold=1 \
+    -Dusing.aikars.flags=https://mcflags.emc.gs \
+    -Daikars.new.flags=true \
+    -jar server.jar --nogui
+
+# --- Logging --------------------------------------------------------------
+# Send stdout/stderr to the systemd journal for unified log management.
+StandardOutput=journal
+StandardError=journal
+# Tag journal entries so they can be filtered with: journalctl -u minecraft
+SyslogIdentifier=minecraft
+
+# --- Restart policy -------------------------------------------------------
+# Restart only on non-zero exit (crash); do not restart on clean shutdown.
+Restart=on-failure
+# Wait 30 seconds before restarting to give the system time to recover.
+RestartSec=30
+# Circuit breaker: allow at most 3 restarts within a 5-minute window.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+# --- Shutdown behavior ----------------------------------------------------
+# Minecraft needs time to save chunks and player data before stopping.
+# 90 seconds is generous but avoids data loss on large worlds.
+TimeoutStopSec=90
+# Send SIGTERM so the server can perform a graceful shutdown.
+KillSignal=SIGTERM
+
+# --- Security hardening ---------------------------------------------------
+# Protect the rest of the system from the server process.
+ProtectSystem=full
+# Allow read-only access to /home but grant write access to the MC directory.
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/minecraft
+# Prevent the process from gaining new privileges via setuid/setgid.
+NoNewPrivileges=true
+# Give the service its own /tmp so it cannot snoop on other services.
+PrivateTmp=true
+
+[Install]
+# Start the server when the system reaches multi-user mode.
+WantedBy=multi-user.target

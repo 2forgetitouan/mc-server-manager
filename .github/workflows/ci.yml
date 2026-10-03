@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Test (Go ${{ matrix.go-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: ["1.22.x", "1.23.x"]
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test -race -v ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+  cross-compile:
+    name: Cross-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+
+      - name: Build linux/amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -o mc-linux-amd64 ./cmd/mc
+
+      - name: Build linux/arm64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+        run: go build -o mc-linux-arm64 ./cmd/mc
+
+      - name: Verify binaries exist
+        run: |
+          test -f mc-linux-amd64 && echo "mc-linux-amd64 OK" || exit 1
+          test -f mc-linux-arm64 && echo "mc-linux-arm64 OK" || exit 1
+          file mc-linux-amd64
+          file mc-linux-arm64
